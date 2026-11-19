@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>VideoGrab</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+:root{--bg:#f5f5f7;--panel:#ffffff;--line:#e3e3e8;--text:#1d1d1f;--muted:#6e6e73;--accent:#0a84ff;--accent2:#0066d6;--ok:#34c759;--warn:#ff9f0a;--err:#ff453a;--row:#fafafa;--field:#f0f0f3;--shadow:0 1px 2px rgba(0,0,0,.06),0 8px 24px rgba(0,0,0,.06)}
+@media (prefers-color-scheme: dark){:root{--bg:#1c1c1e;--panel:#2c2c2e;--line:#3a3a3c;--text:#f5f5f7;--muted:#98989d;--row:#323234;--field:#3a3a3c;--shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.35)}}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text);font-size:13px;-webkit-font-smoothing:antialiased;user-select:none;overflow:hidden}
+button{font:inherit;color:inherit;cursor:pointer;border:0;background:none}
+input,select,textarea{font:inherit;color:inherit}
+select{-webkit-appearance:none;appearance:none;background:var(--field) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23888' stroke-width='1.5' fill='none'/%3E%3C/svg%3E") no-repeat right 9px center;border:0;border-radius:8px;padding:6px 26px 6px 10px;outline:0;cursor:pointer}
+.app{display:flex;flex-direction:column;height:100vh}
+header{display:flex;align-items:center;gap:12px;padding:12px 18px 10px}
+header h1{font-size:15px;font-weight:600;display:flex;align-items:center;gap:8px}
+header h1 .logo{width:22px;height:22px;border-radius:6px;background:linear-gradient(135deg,#0a84ff,#5e5ce6);display:inline-flex;align-items:center;justify-content:center;color:#fff;font-size:11px}
+.proj{display:flex;align-items:center;gap:6px;margin-left:6px}
+.proj select{font-weight:500;max-width:260px}
+.tabs{display:flex;background:rgba(120,120,128,.14);border-radius:8px;padding:2px;margin-left:auto}
+.tabs button{padding:5px 14px;border-radius:6px;color:var(--muted);font-weight:500}
+.tabs button.on{background:var(--panel);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.tabs button .badge{display:inline-block;min-width:16px;padding:0 5px;margin-left:5px;border-radius:9px;background:var(--accent);color:#fff;font-size:10px;line-height:16px;text-align:center}
+main{flex:1;overflow:hidden;display:flex;flex-direction:column;padding:0 18px 14px}
+.view{display:none;flex:1;flex-direction:column;min-height:0}
+.view.on{display:flex}
+.banner{background:rgba(255,69,58,.12);color:var(--err);border-radius:10px;padding:8px 12px;margin-bottom:10px;display:none;font-weight:500}
+.banner.on{display:block}
+.dropzone{background:var(--panel);border:1.5px dashed var(--line);border-radius:12px;padding:10px 12px;display:flex;gap:10px;align-items:center;transition:.15s;box-shadow:var(--shadow)}
+.dropzone.solid{border-style:solid}
+.dropzone.hover{border-color:var(--accent);background:rgba(10,132,255,.06)}
+.dropzone input[type=text],.dropzone input:not([type]){flex:1;border:0;outline:0;background:transparent;font-size:14px;padding:6px 4px;user-select:text;min-width:60px}
+.hint{color:var(--muted);font-size:12px;white-space:nowrap}
+.btn{padding:7px 14px;border-radius:8px;background:rgba(120,120,128,.16);font-weight:500;white-space:nowrap;transition:.1s}
+.btn:hover{background:rgba(120,120,128,.26)}
+.btn.primary{background:var(--accent);color:#fff}.btn.primary:hover{background:var(--accent2)}.btn.primary:disabled{opacity:.45;cursor:default}
+.btn.danger{color:var(--err)}.btn.small{padding:4px 9px;font-size:12px}
+.list{flex:1;overflow:auto;margin-top:12px;background:var(--panel);border-radius:12px;box-shadow:var(--shadow);min-height:0}
+.empty{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--muted);gap:8px;padding:30px;text-align:center}
+.empty .big{font-size:34px;opacity:.5}
+.row{display:grid;grid-template-columns:62px 1fr auto auto;gap:12px;align-items:center;padding:9px 14px;border-bottom:1px solid var(--line)}
+.row:last-child{border-bottom:0}.row:hover{background:var(--row)}
+.thumb{width:62px;height:40px;border-radius:6px;background:rgba(120,120,128,.15);position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center}
+.thumb img{width:100%;height:100%;object-fit:cover}
+.plat{position:absolute;left:-1px;bottom:-1px;width:18px;height:18px;border-radius:5px 0 6px 0;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;color:#fff;border:1px solid rgba(255,255,255,.7)}
+.info{min-width:0}
+.title{font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.meta{color:var(--muted);font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
+.meta a{color:var(--muted);text-decoration:none}.meta a:hover{color:var(--accent)}
+.meta a.lk{color:#64d2ff}.meta a.fd{color:#0a84ff}.meta a.nt{color:#ffd60a}
+@media (prefers-color-scheme: light){.meta a.lk{color:#0099cc}.meta a.fd{color:#0040b0}.meta a.nt{color:#c79a00}}
+.meta .err{color:var(--err)}.meta .warn{color:var(--warn)}.meta .note{color:var(--text)}
+.bar{height:4px;border-radius:2px;background:rgba(120,120,128,.2);margin-top:6px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--accent);border-radius:2px;transition:width .4s}
+.bar.ok i{background:var(--ok)}.bar.conv i{background:#5e5ce6}
+.state{text-align:right;color:var(--muted);font-size:11.5px;white-space:nowrap;min-width:84px}
+.state b{display:block;color:var(--text);font-weight:600;font-size:12px}
+.state.ok b{color:var(--ok)}.state.err b{color:var(--err)}
+.opts{display:flex;gap:4px;align-items:center}
+.opts select{font-size:11.5px;padding:4px 22px 4px 8px;background-size:8px}
+.x{width:26px;height:26px;border-radius:13px;color:var(--muted);display:flex;align-items:center;justify-content:center;font-size:15px}
+.x:hover{background:rgba(120,120,128,.2);color:var(--text)}
+.x.on{color:var(--accent)}
+.foot{display:flex;align-items:center;gap:10px;margin-top:12px}
+.foot .folder{display:flex;align-items:center;gap:8px;background:var(--panel);border-radius:9px;padding:6px 10px;flex:1;min-width:0;box-shadow:var(--shadow);cursor:pointer}
+.foot .folder:hover{background:var(--row)}
+.foot .folder span.path{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--muted)}
+.total{margin-top:10px;display:none;align-items:center;gap:10px;color:var(--muted);font-size:12px}
+.total.on{display:flex}.total .bar{flex:1;margin:0;height:6px;border-radius:3px}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;align-items:center;justify-content:center;z-index:10}
+.modal.on{display:flex}
+.card{background:var(--panel);border-radius:14px;padding:20px 22px;width:460px;box-shadow:0 20px 60px rgba(0,0,0,.35)}
+.card h2{font-size:15px;margin-bottom:12px}
+.card .field{display:flex;gap:8px;align-items:center;margin:10px 0}
+.card .field label{width:110px;color:var(--muted)}
+.card .field .val{flex:1;background:var(--field);border-radius:8px;padding:7px 10px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;user-select:text}
+.card .field select,.card .field input[type=text],.card .field input:not([type]){flex:1;background:var(--field);border:0;border-radius:8px;padding:7px 10px;outline:0;user-select:text}
+.card .field input.t{width:80px;flex:none;text-align:center}
+.card .warn{background:rgba(255,159,10,.14);color:var(--warn);border-radius:8px;padding:8px 10px;margin-top:8px;font-weight:500;display:none}
+.card .warn.on{display:block}
+.card .actions{display:flex;justify-content:flex-end;gap:8px;margin-top:16px;align-items:center}
+.card .actions .left{margin-right:auto;color:var(--muted);display:flex;gap:6px;align-items:center}
+.card p.help{color:var(--muted);font-size:12px;line-height:1.45;margin:6px 0}
+.settings{background:var(--panel);border-radius:12px;padding:4px 18px;box-shadow:var(--shadow);overflow:auto;flex:1}
+.settings h3{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin:16px 0 4px}
+.settings .field{display:flex;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
+.settings .field:last-child{border:0}
+.settings .field label{width:230px;flex:none}
+.settings .field small{display:block;color:var(--muted);font-weight:400;line-height:1.4}
+.settings .field .val{flex:1;color:var(--muted);overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.settings input[type=number],.settings input[type=text],.settings input[type=password]{background:var(--field);border:0;border-radius:8px;padding:6px 10px;outline:0;user-select:text}
+.settings .status{font-size:12px;color:var(--muted);margin-left:auto;white-space:pre-wrap;max-width:50%;text-align:right}
+.settings .plist{flex:1}
+.settings .pr{display:flex;gap:8px;align-items:center;padding:4px 0}
+.settings .pr .n{font-weight:500;width:160px}
+.settings .pr .f{flex:1;color:var(--muted);overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.row.sel{background:rgba(10,132,255,.14)}
+.row.sel:hover{background:rgba(10,132,255,.2)}
+.ctx{position:fixed;z-index:30;background:var(--panel);border-radius:10px;box-shadow:0 10px 40px rgba(0,0,0,.35);padding:5px;min-width:220px;display:none;border:1px solid var(--line)}
+.ctx.on{display:block}
+.ctx div{padding:6px 12px;border-radius:6px;cursor:pointer;white-space:nowrap}
+.ctx div:hover{background:var(--accent);color:#fff}
+.ctx .sep{height:1px;background:var(--line);margin:4px 6px;padding:0;cursor:default}
+.ctx .sep:hover{background:var(--line)}
+.ctx .hd{color:var(--muted);font-size:11px;cursor:default;padding:4px 12px 2px}
+.ctx .hd:hover{background:none;color:var(--muted)}
+.ctx .danger{color:var(--err)}
+.selbar{display:none;align-items:center;gap:8px;margin-top:8px;background:rgba(10,132,255,.12);border-radius:9px;padding:6px 10px;font-size:12px}
+.selbar.on{display:flex}
+.selbar .sp{flex:1}
+.toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);background:var(--text);color:var(--bg);padding:8px 14px;border-radius:9px;font-size:12.5px;opacity:0;transition:.25s;pointer-events:none;z-index:20;max-width:80%;text-align:center}
+.toast.on{opacity:1}
+.tools{display:flex;gap:8px;align-items:center;margin-top:10px;color:var(--muted);font-size:12px}
+.tools .sp{flex:1}
+.srcbar{display:flex;gap:8px;align-items:center;margin-top:10px}
+.srcbar input{flex:1;background:var(--panel);border:0;border-radius:9px;padding:7px 10px;outline:0;box-shadow:var(--shadow);user-select:text}
+::-webkit-scrollbar{width:10px}::-webkit-scrollbar-thumb{background:rgba(120,120,128,.35);border-radius:5px;border:3px solid transparent;background-clip:padding-box}
+</style>
+</head>
+<body>
+<div class="app">
+<header>
+  <h1><span class="logo">&#9660;</span>VideoGrab</h1>
+  <div class="proj"><select id="projSel" title="Projekt: alle Downloads und Quellen landen hier"></select></div>
+  <div class="tabs">
+    <button class="on" data-tab="dl">Downloads<span class="badge" id="badge" style="display:none"></span></button>
+    <button data-tab="src">Quellen</button>
+    <button data-tab="set">Einstellungen</button>
+  </div>
+</header>
+<main>
+  <section class="view on" id="view-dl">
+    <div class="banner" id="banner"></div>
+    <div class="banner" id="appUpd" style="background:rgba(10,132,255,.14);color:var(--accent);display:none;align-items:center;gap:10px"><span id="appUpdText"></span><span style="flex:1"></span><button class="btn small primary" id="appUpdGo">Jetzt installieren</button></div>
+    <div class="dropzone" id="drop">
+      <input id="inp" placeholder="Links hier einfügen (auch mehrere) oder Datei mit Links hierher ziehen" autofocus>
+      <span class="hint" id="hint"></span>
+      <button class="btn" id="btnFile" title="Textdatei, Word, Excel, PDF mit Links">Datei…</button>
+      <button class="btn primary" id="btnAdd">Hinzufügen</button>
+      <input type="file" id="file" multiple style="display:none">
+    </div>
+    <div class="list" id="list"></div>
+    <div class="total" id="total"><span id="totalText"></span><div class="bar"><i id="totalBar" style="width:0"></i></div><button class="btn small danger" id="btnStop">Stopp</button></div>
+    <div class="foot">
+      <div class="folder" id="folderBox" title="Projektordner im Finder öffnen"><span style="flex:none">&#128193;</span><span class="path" id="outDir"></span><button class="btn small" id="btnFolder" title="Ordner dieses Projekts ändern">Ändern</button></div>
+      <select id="allCodec" title="Format für alle Einträge setzen"><option value="">Format für alle…</option><option value="prores">ProRes 422 HQ</option><option value="prores_lt">ProRes 422 LT</option><option value="h264">H.264</option><option value="hevc">HEVC</option><option value="original">Original</option><option value="audio">Nur Ton</option></select>
+      <button class="btn" id="btnClear" title="Fertige und fehlerhafte Einträge entfernen">Aufräumen</button>
+      <button class="btn primary" id="btnStart" disabled>Download starten</button>
+    </div>
+  </section>
+
+  <section class="view" id="view-src">
+    <div class="srcbar">
+      <select id="srcProj"></select>
+      <input id="srcSearch" placeholder="Quellen durchsuchen (Titel, Link, Notiz, Plattform)">
+      <button class="btn" id="btnSrcAdd" title="Link ohne Download als Quelle eintragen">+ Quelle</button>
+      <button class="btn" id="btnMd" title="Als Markdown-Datei in den Projektordner">Markdown</button>
+      <button class="btn primary" id="btnGdoc" title="Als Google Doc anlegen bzw. aktualisieren">Google Doc</button>
+    </div>
+    <div class="selbar" id="selbar"><b id="selCount"></b><span class="sp"></span><button class="btn small" id="selMove">In Projekt verschieben…</button><button class="btn small" id="selCopy">Links kopieren</button><button class="btn small danger" id="selRemove">Entfernen</button><button class="btn small" id="selNone">Auswahl aufheben</button></div>
+    <div class="list" id="srcList"></div>
+    <div class="tools"><span id="srcCount"></span><span class="sp"></span><a href="#" id="gdocLink" style="display:none;color:var(--accent);text-decoration:none">Google Doc dieses Projekts öffnen</a></div>
+  </section>
+
+  <section class="view" id="view-set">
+    <div class="settings">
+      <h3>Projekte</h3>
+      <div class="field"><label>Projekte<small>Jedes Projekt hat einen eigenen Ordner. Downloads und Quellen werden dem gewählten Projekt zugeordnet.</small></label><div class="plist" id="projList"></div><button class="btn small" id="btnProjNew">Neues Projekt</button></div>
+      <h3>Download</h3>
+      <div class="field"><label>Standardformat für neue Links<small>ProRes 422 HQ ist der beste Schnittcodec, aber groß (ca. 1,5 GB/Min. 1080p). LT ist halb so groß und schneidet genauso gut. Pro Zeile änderbar.</small></label><select id="setCodec"><option value="prores">ProRes 422 HQ</option><option value="prores_lt">ProRes 422 LT</option><option value="h264">H.264</option><option value="hevc">HEVC / H.265</option><option value="original">Original</option><option value="audio">Nur Ton (WAV)</option></select></div>
+      <div class="field"><label>Vor dem Start bestätigen<small>Zeigt Projekt, Ordner und geschätzte Größe.</small></label><input type="checkbox" id="setAsk"></div>
+      <div class="field"><label>Warnen ab (GB)<small>Geschätzte Gesamtgröße, ab der der Start-Dialog warnt.</small></label><input type="number" id="setWarn" min="1" max="2000" style="width:80px"></div>
+      <div class="field"><label>Gleichzeitige Downloads</label><input type="number" id="setPar" min="1" max="4" style="width:70px"></div>
+      <div class="field"><label>Browser für Logins<small>Für Instagram, private Vimeos, YouTube-Botsperre. Im Browser eingeloggt sein. macOS fragt einmal nach dem Schlüsselbund-Passwort: "Immer erlauben".</small></label><select id="setBrowser"><option value="chrome">Chrome</option><option value="safari">Safari</option><option value="firefox">Firefox</option><option value="brave">Brave</option><option value="edge">Edge</option><option value="none">Keine Cookies</option></select></div>
+      <h3>Komfort</h3>
+      <div class="field"><label>Zwischenablage beobachten<small>Kopierter Video- oder Bildlink landet automatisch in der Liste (solange VideoGrab läuft).</small></label><input type="checkbox" id="setClip"></div>
+      <div class="field"><label>Mitteilung wenn fertig<small>macOS-Mitteilung mit Ton, sobald alle Downloads durch sind.</small></label><input type="checkbox" id="setNotify"></div>
+      <div class="field"><label>Werkzeuge automatisch aktualisieren<small>yt-dlp und gallery-dl einmal pro Woche im Hintergrund. Häufigste Ursache für "YouTube geht plötzlich nicht".</small></label><input type="checkbox" id="setAuto"><span class="status" id="toolStatus">prüfe…</span><button class="btn small" id="btnUpdate">Jetzt aktualisieren</button></div>
+      <h3>Google Docs</h3>
+      <div class="field"><label>Script-Adresse<small>Einmalig einrichten: Anleitung über den Knopf rechts. Die Web-App-URL endet auf /exec.</small></label><input type="text" id="setGdoc" placeholder="https://script.google.com/macros/s/…/exec" style="flex:1"><button class="btn small" id="btnGdocHelp">Anleitung &amp; Script</button></div>
+      <div class="field"><label>Passwort (TOKEN)<small>Dasselbe wie im Script.</small></label><input type="password" id="setGdocToken" style="width:220px"></div>
+      <h3>App-Version</h3>
+      <div class="field"><label>Neue Versionen<small>VideoGrab prüft einmal am Tag auf GitHub, ob es eine neue Version gibt, und zeigt dann oben einen Hinweis. Ein Klick installiert sie.</small></label><span class="status" id="appVerStatus"></span><button class="btn small" id="btnAppCheck">Jetzt prüfen</button></div>
+      <h3>System</h3>
+      <div class="field"><label>Protokoll &amp; Daten</label><span class="status" id="dataDir">~/Library/Application Support/VideoGrab</span><button class="btn small" id="btnLog">Im Finder zeigen</button></div>
+    </div>
+    <div class="tools"><span id="ver">VideoGrab</span><span class="sp"></span><button class="btn small danger" id="btnQuit">VideoGrab beenden</button></div>
+  </section>
+</main>
+</div>
+
+<!-- Start -->
+<div class="modal" id="mStart"><div class="card">
+  <h2>Download starten</h2>
+  <div class="field"><label>Projekt</label><div class="val" id="msProj"></div></div>
+  <div class="field"><label>Speichern in</label><div class="val" id="msOut"></div><button class="btn small" id="msFolder">Ändern…</button></div>
+  <div class="field"><label>Umfang</label><div class="val" id="msSum" style="background:none;padding-left:0"></div></div>
+  <div class="warn" id="msWarn"></div>
+  <div class="actions"><label class="left"><input type="checkbox" id="msAsk"> Nicht mehr fragen</label><button class="btn" id="msCancel">Abbrechen</button><button class="btn primary" id="msGo">Starten</button></div>
+</div></div>
+
+<!-- Ausschnitt -->
+<div class="modal" id="mRange"><div class="card">
+  <h2>Nur einen Ausschnitt laden</h2>
+  <p class="help" id="mrTitle"></p>
+  <div class="field"><label>Von</label><input class="t" id="mrStart" placeholder="0:00"><label style="width:auto">bis</label><input class="t" id="mrEnd" placeholder="Ende"><span class="hint" id="mrDur"></span></div>
+  <p class="help">Format m:ss oder h:mm:ss. Leer lassen für Anfang bzw. Ende. Der Schnitt sitzt auf dem nächsten Keyframe, also bis zu ein paar Sekunden großzügiger.</p>
+  <div class="actions"><button class="btn left danger" id="mrClear">Ausschnitt entfernen</button><button class="btn" id="mrCancel">Abbrechen</button><button class="btn primary" id="mrGo">Übernehmen</button></div>
+</div></div>
+
+<!-- Projekt -->
+<div class="modal" id="mProj"><div class="card">
+  <h2 id="mpTitle">Neues Projekt</h2>
+  <div class="field"><label>Name</label><input id="mpName" placeholder="z. B. Kunde X Imagefilm"></div>
+  <div class="field"><label>Ordner</label><div class="val" id="mpFolder"></div><button class="btn small" id="mpChoose">Wählen…</button></div>
+  <p class="help">Alle Downloads dieses Projekts landen in diesem Ordner. Ohne Auswahl wird ein Unterordner in ~/Downloads/VideoGrab angelegt.</p>
+  <div class="actions"><button class="btn left danger" id="mpDelete" style="display:none">Projekt löschen</button><button class="btn" id="mpCancel">Abbrechen</button><button class="btn primary" id="mpGo">Anlegen</button></div>
+</div></div>
+
+<!-- Quelle -->
+<div class="modal" id="mSrc"><div class="card">
+  <h2 id="mqTitle">Quelle eintragen</h2>
+  <div class="field"><label>Link</label><input id="mqUrl" placeholder="https://…"></div>
+  <div class="field"><label>Titel</label><input id="mqTitleIn" placeholder="wird automatisch geholt, wenn leer"></div>
+  <div class="field"><label>Notiz</label><input id="mqNote" placeholder="z. B. Musik ab 0:40, Lizenz geklärt"></div>
+  <div class="actions"><button class="btn" id="mqCancel">Abbrechen</button><button class="btn primary" id="mqGo">Speichern</button></div>
+</div></div>
+
+<!-- Google Docs Anleitung -->
+<div class="modal" id="mGdoc"><div class="card" style="width:560px">
+  <h2>Google Docs verbinden (einmalig, 5 Minuten)</h2>
+  <p class="help">1. <a href="#" data-open="https://script.google.com/home/projects/create" style="color:var(--accent)">script.google.com</a> öffnen, neues Projekt.<br>2. Den Script-Text (Knopf unten) komplett einfügen, Beispielcode vorher löschen.<br>3. Im Script bei <b>TOKEN</b> ein eigenes Passwort eintragen.<br>4. Oben rechts "Bereitstellen" > "Neue Bereitstellung" > Typ "Web-App", Ausführen als "Ich", Zugriff "Jeder" > Bereitstellen, Zugriff erlauben.<br>5. Die Web-App-URL (endet auf /exec) und das Passwort hier in den Einstellungen eintragen.</p>
+  <p class="help">Danach legt "Google Doc" im Quellen-Tab pro Projekt ein Dokument im Drive-Ordner "VideoGrab Quellen" an und aktualisiert es bei jedem Export. Teammitglieder können dieselbe Adresse und dasselbe Passwort eintragen, dann landen ihre Docs in deinem Drive.</p>
+  <div class="actions"><button class="btn" id="mgCopy">Script-Text kopieren</button><button class="btn primary" id="mgClose">Schließen</button></div>
+</div></div>
+<!-- Werkzeuge / Update -->
+<div class="modal" id="mUpd"><div class="card">
+  <h2 id="muTitle">Werkzeuge aktualisieren</h2>
+  <p class="help" id="muText"></p>
+  <div class="bar" id="muBarWrap" style="height:8px;border-radius:4px;margin:12px 0 6px;display:none"><i id="muBar" style="width:0"></i></div>
+  <div style="display:flex;justify-content:space-between;color:var(--muted);font-size:12px"><span id="muMsg"></span><b id="muPct"></b></div>
+  <pre id="muLog" style="display:none;margin-top:10px;max-height:140px;overflow:auto;background:var(--field);border-radius:8px;padding:8px;font-size:11px;white-space:pre-wrap;user-select:text;color:var(--muted)"></pre>
+  <div class="actions"><button class="btn" id="muLater">Später</button><button class="btn primary" id="muGo">Jetzt aktualisieren</button><button class="btn primary" id="muClose" style="display:none">Fertig</button></div>
+</div></div>
+<div class="ctx" id="ctx"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+const $=s=>document.querySelector(s);
+const api=async(p,b)=>{const r=await fetch('/api/'+p,b?{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}:{});return r.json();};
+const esc=s=>(s||'').toString().replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let state={queue:[],running:false,settings:{},projects:[]},sources=[],tab='dl',check={};
+const PLAT={youtube:['YT','#ff0000'],instagram:['IG','linear-gradient(45deg,#f9ce34,#ee2a7b,#6228d7)'],tiktok:['TT','#000'],ard:['ARD','#0d47a1'],zdf:['ZDF','#fa7d19'],arte:['ARTE','#ff5200'],vimeo:['V','#1ab7ea'],x:['X','#111'],facebook:['f','#1877f2'],twitch:['TW','#9146ff'],dailymotion:['DM','#0066dc'],reddit:['R','#ff4500'],linkedin:['in','#0a66c2'],soundcloud:['SC','#ff5500'],bilibili:['B','#00a1d6'],pinterest:['P','#e60023'],snapchat:['SN','#f7c600'],drm:['DRM','#8e8e93'],file:['MP4','#34c759'],image:['IMG','#30b0c7'],web:['WWW','#636366']};
+const CODEC={prores:'ProRes HQ',prores_lt:'ProRes LT',h264:'H.264',hevc:'HEVC',original:'Original (max.)',audio:'Nur Ton'};
+const plat=k=>{const [t,c]=PLAT[k]||PLAT.web;return `<span class="plat" style="background:${c}">${t}</span>`;};
+const fmtSize=b=>b>1e9?(b/1e9).toFixed(b>1e10?0:1)+' GB':b>1e6?(b/1e6).toFixed(0)+' MB':b>1e3?(b/1e3).toFixed(0)+' KB':'';
+const fmtDate=d=>{if(!d)return'';const m=d.match(/(\d{4})-(\d{2})-(\d{2})T(\d{2}:\d{2})/);return m?`${m[3]}.${m[2]}.${m[1]} ${m[4]}`:d;};
+const fmtDur=s=>{if(!s&&s!==0)return'';s=Math.round(s);return s>=3600?`${Math.floor(s/3600)}:${String(Math.floor(s%3600/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`:`${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;};
+const parseT=t=>{t=(t||'').trim();if(!t)return null;const p=t.split(':').map(Number);if(p.some(isNaN))return NaN;return p.reduce((a,b)=>a*60+b,0);};
+const shortUrl=u=>{try{const x=new URL(u);return x.hostname.replace('www.','')+x.pathname.slice(0,40);}catch(e){return u;}};
+const pretty=p=>(p||'').replace(state.settings.home||'~~','~');
+const proj=id=>state.projects.find(p=>p.id===(id||state.settings.project))||state.projects[0]||{name:'',folder:''};
+let toastT;const toast=m=>{const t=$('#toast');t.textContent=m;t.classList.add('on');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('on'),3000);};
+async function chooseFolder(start){if(!state.native){const f=prompt('Ordner (vollständiger Pfad):',start||'');return f||'';}const r=await api('choose_folder',{start});return r.folder||'';}
+
+// Tabs
+document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{tab=b.dataset.tab;document.querySelectorAll('.tabs button').forEach(x=>x.classList.toggle('on',x===b));document.querySelectorAll('.view').forEach(v=>v.classList.toggle('on',v.id==='view-'+tab));if(tab==='src')loadSrc();if(tab==='set')loadSet();});
+
+// Projekte
+function renderProjects(){const cur=state.settings.project;const opts=state.projects.map(p=>`<option value="${p.id}">${esc(p.name)}</option>`).join('');
+  const s=$('#projSel');if(s.dataset.sig!==opts+cur){s.innerHTML=opts+'<option value="__new">Neues Projekt…</option><option value="__edit">Projekt bearbeiten…</option>';s.value=cur;s.dataset.sig=opts+cur;}
+  const sp=$('#srcProj');if(sp.dataset.sig!==opts){const v=sp.value;sp.innerHTML=opts+'<option value="all">Alle Projekte</option>';sp.value=v&&[...sp.options].some(o=>o.value===v)?v:cur;sp.dataset.sig=opts;}}
+$('#projSel').onchange=async e=>{const v=e.target.value;if(v==='__new'){e.target.value=state.settings.project;openProj(null);return;}if(v==='__edit'){e.target.value=state.settings.project;openProj(proj());return;}await api('settings',{project:v});$('#srcProj').value=v;refresh();if(tab==='src')loadSrc();};
+let editProj=null,mpFolderVal='';
+function openProj(p){editProj=p;$('#mpTitle').textContent=p?'Projekt bearbeiten':'Neues Projekt';$('#mpName').value=p?p.name:'';mpFolderVal=p?p.folder:'';$('#mpFolder').textContent=p?pretty(p.folder):'(automatisch)';$('#mpDelete').style.display=p&&state.projects.length>1?'':'none';$('#mpGo').textContent=p?'Speichern':'Anlegen';$('#mProj').classList.add('on');setTimeout(()=>$('#mpName').focus(),50);}
+$('#mpChoose').onclick=async()=>{const f=await chooseFolder(mpFolderVal||'');if(f){mpFolderVal=f;$('#mpFolder').textContent=pretty(f);}};
+$('#mpCancel').onclick=()=>$('#mProj').classList.remove('on');
+$('#mpGo').onclick=async()=>{const name=$('#mpName').value.trim();if(!name){toast('Bitte einen Namen eingeben');return;}
+  let created=null;
+  if(editProj){await api('project_update',{id:editProj.id,name,folder:mpFolderVal||editProj.folder});}else{const r=await api('project_add',{name,folder:mpFolderVal});if(!r.ok){toast(r.error);return;}created=r.project;}
+  $('#mProj').classList.remove('on');await refresh();if(tab==='set')loadSet();toast(editProj?'Projekt gespeichert':'Projekt angelegt');
+  if(created&&pendingMove&&pendingMove.length){const ids=pendingMove;pendingMove=null;const r=await api('source_move',{ids,project:created.id});sel.clear();if(tab==='src'){await api('settings',{project:state.settings.project});loadSrc();}toast(`${r.moved} Quellen nach "${created.name}" verschoben`);}
+  pendingMove=null;};
+$('#mpDelete').onclick=async()=>{if(!editProj)return;if(!confirm(`Projekt "${editProj.name}" löschen? Die Dateien bleiben erhalten, die Quellen wandern ins erste Projekt.`))return;const r=await api('project_delete',{id:editProj.id});if(!r.ok){toast(r.error);return;}$('#mProj').classList.remove('on');await refresh();if(tab==='set')loadSet();};
+$('#btnProjNew').onclick=()=>openProj(null);
+
+// Eingabe
+async function addText(text,files){if(!text.trim()&&!(files&&files.length))return;$('#hint').textContent='lese…';const r=await api('add',{text,files:files||[],project:state.settings.project});$('#hint').textContent='';$('#inp').value='';if(r.found===0)toast('Keine Links gefunden');else if(r.added===0)toast('Alle Links sind schon in der Liste');else toast(`${r.added} Link${r.added>1?'s':''} hinzugefügt`);refresh();}
+$('#btnAdd').onclick=()=>addText($('#inp').value);
+$('#inp').addEventListener('keydown',e=>{if(e.key==='Enter')addText($('#inp').value);});
+$('#inp').addEventListener('paste',e=>{const t=(e.clipboardData||window.clipboardData).getData('text');if(/https?:\/\//.test(t)){e.preventDefault();addText(t);}});
+$('#btnFile').onclick=()=>$('#file').click();
+$('#file').onchange=e=>readFiles(e.target.files);
+function readFiles(fl){const files=[];let n=fl.length;if(!n)return;[...fl].forEach(f=>{const rd=new FileReader();rd.onload=()=>{files.push({name:f.name,data:rd.result.split(',')[1]});if(!--n)addText('',files);};rd.readAsDataURL(f);});}
+const dz=$('#drop');['dragenter','dragover'].forEach(ev=>document.addEventListener(ev,e=>{e.preventDefault();dz.classList.add('hover');}));
+['dragleave','drop'].forEach(ev=>document.addEventListener(ev,e=>{e.preventDefault();if(ev==='drop'||e.target===document.documentElement)dz.classList.remove('hover');}));
+document.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('hover');const dt=e.dataTransfer;if(dt.files&&dt.files.length)readFiles(dt.files);else{const t=dt.getData('text/uri-list')||dt.getData('text');if(t)addText(t);}});
+document.addEventListener('paste',e=>{if(e.target.matches('input,textarea'))return;const t=(e.clipboardData||window.clipboardData).getData('text');if(/https?:\/\//.test(t))addText(t);});
+
+// Liste
+function render(){
+  const q=state.queue,list=$('#list');
+  const ready=q.filter(i=>i.status==='ready'),active=q.filter(i=>['downloading','converting','waiting'].includes(i.status)).length;
+  $('#badge').style.display=q.length?'':'none';$('#badge').textContent=q.length;
+  $('#btnStart').disabled=!(ready.length&&!state.running);$('#btnStart').textContent=state.running?'Läuft…':`Download starten${ready.length?` (${ready.length})`:''}`;
+  const pr=proj();$('#outDir').textContent=pretty(pr.folder);$('#outDir').title=pr.folder;
+  const tot=$('#total');tot.classList.toggle('on',state.running||active>0);
+  if(state.running||active>0){const rel=q.filter(i=>!['playlist','error','info'].includes(i.status));const p=rel.length?rel.reduce((a,i)=>a+(i.status==='done'?1:i.progress||0),0)/rel.length:0;$('#totalBar').style.width=(p*100).toFixed(1)+'%';$('#totalText').textContent=`${q.filter(i=>i.status==='done').length} / ${rel.length} fertig`;}
+  if(!q.length){list.innerHTML='<div class="empty"><div class="big">&#8681;</div><div>Noch keine Links.</div><div>Links oben einfügen, Datei hereinziehen, irgendwo <b>⌘V</b> drücken, oder einfach einen Link in Chrome kopieren.</div></div>';return;}
+  if(list.querySelector('.empty'))list.innerHTML='';
+  const seen=new Set();
+  q.forEach((i,idx)=>{
+    seen.add(i.id);
+    let row=list.querySelector(`.row[data-id="${i.id}"]`);
+    if(!row){row=document.createElement('div');row.className='row';row.dataset.id=i.id;row.innerHTML='<div class="thumb"></div><div class="info"><div class="title"></div><div class="meta"></div><div class="barwrap"></div></div><div class="state"></div><div class="opts"></div>';}
+    if(list.children[idx]!==row)list.insertBefore(row,list.children[idx]||null);
+    const editable=i.status==='ready';
+    const sig=JSON.stringify([i.status,i.title,i.error,i.output,i.thumb,i.platform,i.uploader,i.duration,i.size,i.codec,i.start,i.end,i.kind,editable]);
+    if(row.dataset.sig!==sig){
+      row.dataset.sig=sig;
+      const th=row.querySelector('.thumb');const cur=th.querySelector('img');
+      if((cur?cur.getAttribute('src'):'')!==(i.thumb||'')){th.innerHTML=(i.thumb?`<img src="${esc(i.thumb)}" draggable="false">`:'')+plat(i.platform);}else if(!th.querySelector('.plat'))th.insertAdjacentHTML('beforeend',plat(i.platform));
+      row.querySelector('.title').textContent=i.title||i.url;row.querySelector('.title').title=i.url;
+      const range=(i.start!=null||i.end!=null)?` · <span class="note">Ausschnitt ${fmtDur(i.start||0)} bis ${i.end!=null?fmtDur(i.end):'Ende'}</span>`:'';
+      row.querySelector('.meta').innerHTML=i.status==='error'?`<span class="err">${esc(i.error)}</span>`:i.status==='playlist'?`<span class="warn">${esc(i.error)}</span> · <a href="#" data-expand="${i.id}">Alle hinzufügen</a>`:i.status==='done'?`<a href="#" class="fd" data-reveal="${esc(i.output)}">Im Finder zeigen</a> · ${esc(i.output.split('/').pop())}${i.error?' · '+esc(i.error):''}`:`${esc(i.platform_name)}${i.kind==='image'?' · Bild'+(i.images_count>1?'er ('+i.images_count+')':''):''}${i.uploader?' · '+esc(i.uploader):''} · ${esc(shortUrl(i.url))}${range}`;
+      const opts=row.querySelector('.opts');
+      if(editable){opts.innerHTML=(i.kind==='image'?'':`<select data-codec="${i.id}" title="Format für diesen Eintrag">${Object.entries(CODEC).map(([k,v])=>`<option value="${k}"${k===(i.codec||'prores')?' selected':''}>${v}</option>`).join('')}</select><button class="x${i.start!=null||i.end!=null?' on':''}" title="Nur einen Ausschnitt laden" data-range="${i.id}">&#9986;</button>`)+(i.status==='error'?`<button class="x" title="Nochmal versuchen" data-retry="${i.id}">&#8635;</button>`:'')+`<button class="x" title="Entfernen" data-rm="${i.id}">&#215;</button>`;}
+      else opts.innerHTML=`<button class="x" title="Entfernen" data-rm="${i.id}">&#215;</button>`;
+    }
+    let st='',cls='',bar='';
+    switch(i.status){
+      case 'info':st='<b>Lade Infos…</b>';break;
+      case 'ready':st=`<b>Bereit</b>${i.kind==='image'?'':fmtDur(i.duration)}${i.estimate?' · ca. '+fmtSize(i.estimate):''}`;break;
+      case 'waiting':st='<b>Wartet</b>';break;
+      case 'playlist':st='<b>Mehrere</b>';break;
+      case 'downloading':{const p=Math.min(100,Math.round(i.progress/0.6*100));st=`<b>${p} %</b>${esc(i.speed)}${i.eta?' · '+esc(i.eta):''}`;bar=['',i.progress];break;}
+      case 'converting':st=`<b>Umwandeln</b>${Math.round(i.progress*100)} %`;bar=['conv',i.progress];break;
+      case 'done':st=`<b>Fertig</b>${fmtSize(i.size)}`;cls='ok';bar=['ok',1];break;
+      case 'error':st='<b>Fehler</b>';cls='err';break;
+      case 'cancelled':st='<b>Abgebrochen</b>';break;
+    }
+    const se=row.querySelector('.state');if(se.innerHTML!==st)se.innerHTML=st;se.className='state '+cls;
+    const bw=row.querySelector('.barwrap');
+    if(!bar){if(bw.innerHTML)bw.innerHTML='';}else{let b=bw.querySelector('.bar');if(!b){bw.innerHTML='<div class="bar"><i></i></div>';b=bw.querySelector('.bar');}b.className='bar '+bar[0];b.firstChild.style.width=(bar[1]*100).toFixed(1)+'%';}
+  });
+  [...list.querySelectorAll('.row')].forEach(r=>{if(!seen.has(r.dataset.id))r.remove();});
+}
+$('#list').addEventListener('click',async e=>{const t=e.target.closest('[data-rm],[data-retry],[data-reveal],[data-expand],[data-range]');if(!t)return;e.preventDefault();
+  if(t.dataset.rm)await api('remove',{ids:[t.dataset.rm]});
+  else if(t.dataset.retry)await api('retry',{ids:[t.dataset.retry]});
+  else if(t.dataset.reveal)await api('reveal',{path:t.dataset.reveal});
+  else if(t.dataset.expand){const r=await api('expand',{id:t.dataset.expand});toast(`${r.added} Beiträge hinzugefügt`);}
+  else if(t.dataset.range)openRange(t.dataset.range);
+  refresh();});
+$('#list').addEventListener('change',async e=>{const s=e.target.closest('[data-codec]');if(s){await api('item',{id:s.dataset.codec,codec:s.value});refresh();}});
+$('#allCodec').onchange=async e=>{if(!e.target.value)return;const first=state.queue[0];await api('item',{id:first?first.id:'',all_codec:e.target.value});await api('settings',{codec:e.target.value});e.target.value='';toast('Format für alle gesetzt: '+CODEC[state.settings.codec]);refresh();};
+$('#btnClear').onclick=async()=>{await api('clear',{});refresh();};
+$('#btnStop').onclick=async()=>{await api('cancel_all',{});toast('Gestoppt');refresh();};
+$('#folderBox').onclick=e=>{if(e.target.id==='btnFolder')return;api('reveal',{path:proj().folder,create:true});};
+$('#btnFolder').onclick=async()=>{const p=proj();const f=await chooseFolder(p.folder);if(f){await api('project_update',{id:p.id,folder:f});refresh();}};
+
+// Ausschnitt
+let rangeId=null;
+function openRange(id){const i=state.queue.find(x=>x.id===id);if(!i)return;rangeId=id;$('#mrTitle').textContent=i.title||i.url;$('#mrStart').value=i.start!=null?fmtDur(i.start):'';$('#mrEnd').value=i.end!=null?fmtDur(i.end):'';$('#mrDur').textContent=i.duration?'Gesamt '+fmtDur(i.duration):'';$('#mRange').classList.add('on');setTimeout(()=>$('#mrStart').focus(),50);}
+$('#mrCancel').onclick=()=>$('#mRange').classList.remove('on');
+$('#mrClear').onclick=async()=>{await api('item',{id:rangeId,start:null,end:null});$('#mRange').classList.remove('on');refresh();};
+$('#mrGo').onclick=async()=>{const s=parseT($('#mrStart').value),e=parseT($('#mrEnd').value);if(Number.isNaN(s)||Number.isNaN(e)){toast('Zeit bitte als m:ss eingeben');return;}if(s!=null&&e!=null&&e<=s){toast('"bis" muss nach "von" liegen');return;}await api('item',{id:rangeId,start:s,end:e});$('#mRange').classList.remove('on');refresh();};
+
+// Start
+$('#btnStart').onclick=()=>{if(state.settings.ask_before_start===false){start();return;}const p=proj();const ready=state.queue.filter(i=>i.status==='ready');const sum=ready.reduce((a,i)=>a+(i.estimate||0),0);
+  $('#msProj').textContent=p.name;$('#msOut').textContent=pretty(p.folder);$('#msOut').title=p.folder;
+  const byC={};ready.forEach(i=>{const k=i.kind==='image'?'Bilder':CODEC[i.codec]||i.codec;byC[k]=(byC[k]||0)+1;});
+  $('#msSum').textContent=`${ready.length} Einträge (${Object.entries(byC).map(([k,v])=>v+'× '+k).join(', ')}) · geschätzt ca. ${fmtSize(sum)||'unbekannt'}`;
+  const warnGb=state.settings.warn_gb||20;const w=$('#msWarn');w.classList.toggle('on',sum>warnGb*1e9);w.textContent=`Das sind voraussichtlich ${fmtSize(sum)}. Für lange Sendungen reicht meist ProRes LT oder H.264 (Format pro Zeile oder "Format für alle" unten).`;
+  $('#msAsk').checked=false;$('#mStart').classList.add('on');};
+$('#msFolder').onclick=async()=>{const p=proj();const f=await chooseFolder(p.folder);if(f){await api('project_update',{id:p.id,folder:f});await refresh();$('#msOut').textContent=pretty(f);}};
+$('#msCancel').onclick=()=>$('#mStart').classList.remove('on');
+$('#msGo').onclick=async()=>{$('#mStart').classList.remove('on');if($('#msAsk').checked)await api('settings',{ask_before_start:false});start();};
+async function start(){await api('start',{project:state.settings.project});toast('Download gestartet');refresh();}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.modal.on').forEach(m=>m.classList.remove('on'));if(e.key==='Enter'){if($('#mStart').classList.contains('on'))$('#msGo').click();else if($('#mRange').classList.contains('on'))$('#mrGo').click();else if($('#mProj').classList.contains('on'))$('#mpGo').click();else if($('#mSrc').classList.contains('on'))$('#mqGo').click();}});
+
+// Quellen
+async function loadSrc(){sources=await api('sources');renderSrc();}
+function renderSrc(){const pid=$('#srcProj').value||state.settings.project;const q=($('#srcSearch').value||'').toLowerCase();
+  const h=sources.filter(x=>(pid==='all'||x.project===pid)&&(!q||[x.title,x.url,x.note,x.platform_name,x.uploader].some(v=>(v||'').toLowerCase().includes(q))));
+  $('#srcCount').textContent=`${h.length} Quellen${pid==='all'?' (alle Projekte)':' in "'+esc(proj(pid).name)+'"'}`;
+  const p=pid==='all'?null:proj(pid);const gl=$('#gdocLink');gl.style.display=p&&p.gdoc_url?'':'none';gl.dataset.url=p?p.gdoc_url:'';
+  if(!h.length){$('#srcList').innerHTML='<div class="empty"><div class="big">&#128451;</div><div>Noch keine Quellen in diesem Projekt.</div><div>Jeder Download landet automatisch hier. Links ohne Download über "+ Quelle".</div></div>';return;}
+  $('#srcList').innerHTML=h.map(x=>`<div class="row" data-id="${x.id}"><div class="thumb">${x.thumb&&x.thumb.startsWith('/thumb/')?`<img src="${esc(x.thumb)}" draggable="false">`:''}${plat(x.platform)}</div><div class="info"><div class="title" title="${esc(x.url)}">${esc(x.title||x.url)}</div><div class="meta">${esc(x.platform_name)}${x.uploader?' · '+esc(x.uploader):''}${x.kind==='image'&&x.platform!=='image'?' · Bild':''}${x.kind==='link'?' · ohne Download':''} · <a href="#" class="lk" data-copy="${esc(x.url)}">Link kopieren</a>${x.output?` · <a href="#" class="fd" data-reveal="${esc(x.output)}">Im Finder</a>`:` · <a href="#" class="lk" data-again="${esc(x.url)}">Laden</a>`} · <a href="#" class="nt" data-note="${x.id}">Notiz</a>${x.note?` · <span class="note">${esc(x.note)}</span>`:''}</div></div><div class="state"><b>${esc(fmtDate(x.date))}</b>${fmtSize(x.size)}${x.duration?' · '+fmtDur(x.duration):''}</div><div class="opts"><button class="x" title="Aus den Quellen entfernen (Datei bleibt)" data-srm="${x.id}">&#215;</button></div></div>`).join('');paintSel();}
+// Mehrfachauswahl und Rechtsklick-Menue
+let sel=new Set(),lastSel=null;
+function visibleSrc(){const pid=$('#srcProj').value||state.settings.project;const q=($('#srcSearch').value||'').toLowerCase();return sources.filter(x=>(pid==='all'||x.project===pid)&&(!q||[x.title,x.url,x.note,x.platform_name,x.uploader].some(v=>(v||'').toLowerCase().includes(q))));}
+function paintSel(){document.querySelectorAll('#srcList .row').forEach(r=>r.classList.toggle('sel',sel.has(r.dataset.id)));$('#selbar').classList.toggle('on',sel.size>0);$('#selCount').textContent=`${sel.size} ausgewählt`;}
+$('#srcList').addEventListener('click',e=>{if(e.target.closest('a,button'))return;const row=e.target.closest('.row');if(!row)return;const id=row.dataset.id;
+  if(e.shiftKey&&lastSel){const ids=visibleSrc().map(x=>x.id);const a=ids.indexOf(lastSel),b=ids.indexOf(id);if(a>=0&&b>=0){ids.slice(Math.min(a,b),Math.max(a,b)+1).forEach(x=>sel.add(x));}}
+  else if(e.metaKey||e.ctrlKey){sel.has(id)?sel.delete(id):sel.add(id);}
+  else{if(sel.size===1&&sel.has(id))sel.clear();else{sel.clear();sel.add(id);}}
+  lastSel=id;paintSel();});
+$('#srcList').addEventListener('contextmenu',e=>{const row=e.target.closest('.row');if(!row)return;e.preventDefault();const id=row.dataset.id;if(!sel.has(id)){sel.clear();sel.add(id);lastSel=id;paintSel();}showCtx(e.clientX,e.clientY);});
+function showCtx(x,y){const m=$('#ctx');const n=sel.size;
+  m.innerHTML=`<div class="hd">${n} Quelle${n>1?'n':''}</div><div class="hd">In Projekt verschieben</div>`+state.projects.map(p=>`<div data-move="${p.id}">&nbsp;&nbsp;${esc(p.name)}</div>`).join('')+`<div data-newproj="1">&nbsp;&nbsp;Neues Projekt…</div><div class="sep"></div><div data-copy="1">Links kopieren</div><div data-all="1">Alle sichtbaren auswählen</div><div class="sep"></div><div data-remove="1" class="danger">Aus den Quellen entfernen</div>`;
+  m.classList.add('on');const r=m.getBoundingClientRect();m.style.left=Math.min(x,window.innerWidth-r.width-8)+'px';m.style.top=Math.min(y,window.innerHeight-r.height-8)+'px';}
+document.addEventListener('click',e=>{if(!e.target.closest('#ctx'))$('#ctx').classList.remove('on');});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){$('#ctx').classList.remove('on');}if((e.key==='Backspace'||e.key==='Delete')&&sel.size&&tab==='src'&&!e.target.matches('input,textarea')){e.preventDefault();removeSel();}if((e.metaKey||e.ctrlKey)&&e.key==='a'&&tab==='src'&&!e.target.matches('input,textarea')){e.preventDefault();visibleSrc().forEach(x=>sel.add(x.id));paintSel();}});
+$('#ctx').addEventListener('click',async e=>{const t=e.target.closest('[data-move],[data-newproj],[data-copy],[data-all],[data-remove]');if(!t)return;$('#ctx').classList.remove('on');
+  if(t.dataset.move)await moveSel(t.dataset.move);
+  else if(t.dataset.newproj){pendingMove=[...sel];openProj(null);}
+  else if(t.dataset.copy)copySel();
+  else if(t.dataset.all){visibleSrc().forEach(x=>sel.add(x.id));paintSel();}
+  else if(t.dataset.remove)removeSel();});
+let pendingMove=null;
+async function moveSel(pid){const ids=[...sel];const r=await api('source_move',{ids,project:pid});if(!r.ok){toast(r.error);return;}sel.clear();toast(`${r.moved} Quelle${r.moved>1?'n':''} nach "${proj(pid).name}" verschoben`);loadSrc();}
+async function copySel(){const urls=visibleSrc().filter(x=>sel.has(x.id)).map(x=>x.url).join('\n');try{await navigator.clipboard.writeText(urls);toast(`${sel.size} Links kopiert`);}catch(x){prompt('Links:',urls);}}
+async function removeSel(){const n=sel.size;if(n>1&&!confirm(`${n} Quellen aus der Liste entfernen? Die Dateien bleiben erhalten.`))return;await api('source_remove',{ids:[...sel]});sel.clear();toast(`${n} entfernt`);loadSrc();}
+$('#selMove').onclick=e=>{showCtx(e.clientX,e.clientY);};
+$('#selCopy').onclick=copySel;$('#selRemove').onclick=removeSel;$('#selNone').onclick=()=>{sel.clear();paintSel();};
+$('#srcProj').onchange=()=>{sel.clear();renderSrc();};$('#srcSearch').oninput=renderSrc;
+$('#srcList').addEventListener('click',async e=>{const t=e.target.closest('[data-reveal],[data-copy],[data-again],[data-srm],[data-note]');if(!t)return;e.preventDefault();
+  if(t.dataset.reveal){const r=await api('reveal',{path:t.dataset.reveal});if(r.error)toast(r.error);}
+  else if(t.dataset.copy){try{await navigator.clipboard.writeText(t.dataset.copy);toast('Link kopiert');}catch(x){prompt('Link:',t.dataset.copy);}}
+  else if(t.dataset.again){await api('add',{text:t.dataset.again,project:state.settings.project});document.querySelector('[data-tab=dl]').click();refresh();}
+  else if(t.dataset.note){const s=sources.find(x=>x.id===t.dataset.note);const n=prompt('Notiz zu dieser Quelle:',s.note||'');if(n!==null){await api('source_update',{id:s.id,note:n});loadSrc();}}
+  else if(t.dataset.srm){await api('source_remove',{ids:[t.dataset.srm]});loadSrc();}});
+$('#gdocLink').onclick=e=>{e.preventDefault();api('open_url',{url:e.target.dataset.url});};
+$('#btnSrcAdd').onclick=()=>{$('#mqUrl').value='';$('#mqTitleIn').value='';$('#mqNote').value='';$('#mSrc').classList.add('on');setTimeout(()=>$('#mqUrl').focus(),50);};
+$('#mqCancel').onclick=()=>$('#mSrc').classList.remove('on');
+$('#mqGo').onclick=async()=>{const pid=$('#srcProj').value==='all'?state.settings.project:$('#srcProj').value;const r=await api('source_add',{url:$('#mqUrl').value,title:$('#mqTitleIn').value,note:$('#mqNote').value,project:pid});if(!r.ok){toast(r.error);return;}$('#mSrc').classList.remove('on');toast('Quelle eingetragen');loadSrc();setTimeout(loadSrc,4000);};
+function srcIds(){const pid=$('#srcProj').value||state.settings.project;const q=($('#srcSearch').value||'').toLowerCase();return sources.filter(x=>(pid==='all'||x.project===pid)&&(!q||[x.title,x.url,x.note,x.platform_name,x.uploader].some(v=>(v||'').toLowerCase().includes(q)))).map(x=>x.id);}
+$('#btnMd').onclick=async()=>{const r=await api('export_markdown',{project:$('#srcProj').value||state.settings.project,ids:srcIds()});toast(r.ok?`Markdown mit ${r.count} Quellen gespeichert`:r.error);};
+$('#btnGdoc').onclick=async()=>{if(!state.settings.gdoc_url){$('#mGdoc').classList.add('on');return;}toast('Google Doc wird erstellt…');const r=await api('export_gdoc',{project:$('#srcProj').value||state.settings.project,ids:srcIds()});if(!r.ok){toast(r.error);return;}try{await navigator.clipboard.writeText(r.url);}catch(x){}toast(`Google Doc mit ${r.count} Quellen aktualisiert, Link in der Zwischenablage`);await refresh();renderSrc();api('open_url',{url:r.url});};
+
+// Google Docs Anleitung
+$('#btnGdocHelp').onclick=()=>$('#mGdoc').classList.add('on');
+$('#mgClose').onclick=()=>$('#mGdoc').classList.remove('on');
+$('#mgCopy').onclick=async()=>{const t=await (await fetch('/gdoc-script')).text();try{await navigator.clipboard.writeText(t);toast('Script-Text kopiert, jetzt bei script.google.com einfügen');}catch(x){prompt('Script-Text:',t);}};
+document.addEventListener('click',e=>{const a=e.target.closest('[data-open]');if(a){e.preventDefault();api('open_url',{url:a.dataset.open});}});
+
+// Einstellungen
+async function loadSet(){const s=state.settings;$('#setAsk').checked=s.ask_before_start!==false;$('#setCodec').value=s.codec||'prores';$('#setBrowser').value=s.browser||'chrome';$('#setPar').value=s.parallel||2;$('#setWarn').value=s.warn_gb||20;$('#setClip').checked=s.clipboard_watch!==false;$('#setNotify').checked=s.notify!==false;$('#setAuto').checked=s.auto_update!==false;$('#setGdoc').value=s.gdoc_url||'';$('#setGdocToken').value=s.gdoc_token||'';$('#ver').textContent='VideoGrab '+(state.version||'');$('#appVerStatus').textContent=state.app_update&&state.app_update.available?`Version ${state.app_update.version} verfügbar`:`Aktuell (${state.version||''})`;
+  $('#projList').innerHTML=state.projects.map(p=>`<div class="pr"><span class="n">${esc(p.name)}</span><span class="f" title="${esc(p.folder)}">${esc(pretty(p.folder))}</span><button class="btn small" data-pedit="${p.id}">Bearbeiten</button></div>`).join('');
+  check=await api('check');const d=check.last_update?new Date(check.last_update*1000).toLocaleDateString('de-DE'):'nie';$('#toolStatus').textContent=check.ytdlp?`yt-dlp ${check.ytdlp_version} · ffmpeg ${check.ffmpeg_version}${check.gallerydl?' · gallery-dl '+check.gallerydl_version:' · gallery-dl fehlt'}\nletztes Update: ${d}`:'yt-dlp nicht gefunden! Installation erneut ausführen.';}
+$('#projList').addEventListener('click',e=>{const t=e.target.closest('[data-pedit]');if(t)openProj(state.projects.find(p=>p.id===t.dataset.pedit));});
+$('#setAsk').onchange=()=>api('settings',{ask_before_start:$('#setAsk').checked});
+$('#setCodec').onchange=()=>api('settings',{codec:$('#setCodec').value}).then(refresh);
+$('#setBrowser').onchange=()=>api('settings',{browser:$('#setBrowser').value});
+$('#setPar').onchange=()=>api('settings',{parallel:parseInt($('#setPar').value)||2});
+$('#setWarn').onchange=()=>api('settings',{warn_gb:parseInt($('#setWarn').value)||20});
+$('#setClip').onchange=()=>api('settings',{clipboard_watch:$('#setClip').checked});
+$('#setNotify').onchange=()=>api('settings',{notify:$('#setNotify').checked});
+$('#setAuto').onchange=()=>api('settings',{auto_update:$('#setAuto').checked});
+$('#setGdoc').onchange=()=>api('settings',{gdoc_url:$('#setGdoc').value.trim()});
+$('#setGdocToken').onchange=()=>api('settings',{gdoc_token:$('#setGdocToken').value});
+$('#btnUpdate').onclick=()=>showUpdModal(check.missing||[]);
+$('#btnLog').onclick=()=>api('reveal',{path:'~/Library/Application Support/VideoGrab/videograb.log'});
+$('#btnQuit').onclick=()=>{api('quit',{});setTimeout(()=>window.close(),300);};
+
+// Werkzeuge: Selbsttest beim Start, Update mit Ladebalken
+let updSeen=false;
+function showUpdModal(missing){const m=$('#mUpd');$('#muTitle').textContent=missing.length?'Es fehlt etwas':'Werkzeuge aktualisieren';
+  $('#muText').textContent=missing.length?`Folgende Werkzeuge fehlen auf diesem Mac: ${missing.join(', ')}. ${missing.includes('ffmpeg')||missing.includes('yt-dlp')?'Ohne sie kann VideoGrab nichts laden.':'Ohne gallery-dl können keine Bilder (Instagram-Fotos, Pinterest) geladen werden.'} Ein Klick installiert sie nach, das dauert je nach Internet 1 bis 5 Minuten.`:'yt-dlp und gallery-dl werden auf den neuesten Stand gebracht. Das ist die erste Hilfe, wenn eine Plattform plötzlich nicht mehr geht.';
+  $('#muBarWrap').style.display='none';$('#muLog').style.display='none';$('#muMsg').textContent='';$('#muPct').textContent='';$('#muGo').style.display='';$('#muLater').style.display='';$('#muClose').style.display='none';m.classList.add('on');}
+function renderUpd(u){if(!u)return;const m=$('#mUpd');
+  if(u.running){if(!m.classList.contains('on')){$('#muTitle').textContent=u.kind==='app'?'VideoGrab wird aktualisiert':'Werkzeuge werden aktualisiert';$('#muText').textContent='Bitte kurz warten, VideoGrab installiert und aktualisiert im Hintergrund.';m.classList.add('on');}
+    $('#muBarWrap').style.display='';$('#muBar').style.width=u.percent+'%';$('#muPct').textContent=u.percent+' %';$('#muMsg').textContent=u.message;$('#muGo').style.display='none';$('#muLater').style.display='none';$('#muClose').style.display='none';}
+  else if(u.done){$('#muBarWrap').style.display='';$('#muBar').style.width='100%';$('#muPct').textContent='100 %';$('#muMsg').textContent=u.message;$('#muTitle').textContent=u.ok?'Fertig':'Update beendet';$('#muText').textContent=u.ok?'Alle Werkzeuge sind installiert und aktuell.':'Nicht alles hat geklappt. Details stehen im Protokoll (Einstellungen > Im Finder zeigen). Meist hilft es, den Mac neu zu starten und es nochmal zu versuchen.';
+    $('#muGo').style.display='none';$('#muLater').style.display='none';$('#muClose').style.display='';const lg=$('#muLog');lg.style.display=u.ok?'none':'';lg.textContent=(u.log||'').trim().slice(-900)||'(keine Ausgabe)';if(!m.classList.contains('on'))m.classList.add('on');}}
+$('#muGo').onclick=async()=>{await api('update',{});$('#muBarWrap').style.display='';$('#muMsg').textContent='Starte …';$('#muPct').textContent='0 %';$('#muGo').style.display='none';$('#muLater').style.display='none';};
+$('#muLater').onclick=()=>$('#mUpd').classList.remove('on');
+$('#muClose').onclick=async()=>{await api('update_ack',{});$('#mUpd').classList.remove('on');if(tab==='set')loadSet();};
+(async()=>{try{const c=await api('check');if(c.missing&&c.missing.length){showUpdModal(c.missing);}}catch(e){}})();
+// App-Update
+function renderAppUpd(a){const b=$('#appUpd');if(!a||!a.available){b.style.display='none';return;}b.style.display='flex';$('#appUpdText').textContent=`VideoGrab ${a.version} ist verfügbar${a.notes?': '+a.notes:''}`;}
+$('#appUpdGo').onclick=async()=>{await api('app_update',{});$('#muTitle').textContent='VideoGrab wird aktualisiert';$('#muText').textContent='Die neue Version wird geladen und installiert. Danach startet VideoGrab von selbst neu.';$('#mUpd').classList.add('on');};
+$('#btnAppCheck').onclick=async()=>{$('#appVerStatus').textContent='prüfe…';const a=await api('app_check',{});$('#appVerStatus').textContent=a.error?'Prüfung fehlgeschlagen: '+a.error:(a.available?`Version ${a.version} verfügbar`:`Aktuell (${state.version})`);renderAppUpd(a);};
+// Polling
+async function refresh(){try{state=await api('state');renderProjects();render();renderUpd(state.update);renderAppUpd(state.app_update);}catch(e){}}
+refresh();setInterval(()=>{if(tab==='dl'||state.running||(state.update&&state.update.running))refresh();},700);
+</script>
+</body>
+</html>
