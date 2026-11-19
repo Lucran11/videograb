@@ -18,7 +18,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlparse
 
-VERSION = "2.2.0"
+VERSION = "2.2.1"
 UPDATE_URL = "https://raw.githubusercontent.com/Lucran11/videograb/main"
 APP_DIR = Path(__file__).resolve().parent
 UI_DIR = APP_DIR / "ui"
